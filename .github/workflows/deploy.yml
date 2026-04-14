@@ -1,30 +1,49 @@
-name: Flask Docker CI
+name: Deploy Python App to Azure VM (No Docker)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.10"
+      # Step 2: Copy files to VM
+      - name: Copy files to Azure VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_IP_ADDRESS }}
+          username: azureuser
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          source: "./*"
+          target: "/home/azureuser/myapp"
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
+      # Step 3: SSH and run app
+      - name: Run app.py on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_IP_ADDRESS }}
+          username: azureuser
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            mkdir -p /home/azureuser/myapp
+            cd /home/azureuser/myapp
 
-    - name: Run Flask test
-      run: |
-        python app.py & sleep 5
+            # Stop old app
+            pkill -f app.py || true
 
-    - name: Build Docker Image
-      run: |
-        docker build -t gym-app .
+            # Install dependencies
+            pip3 install -r requirements.txt
+
+            # Run app in background
+            nohup python3 app.py > app.log 2>&1 &
+
+            echo "✅ App deployed and running"
