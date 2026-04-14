@@ -8,15 +8,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
       # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Copy files to VM
+      # Step 2: Copy files to Azure VM
       - name: Copy files to Azure VM
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -26,24 +23,30 @@ jobs:
           source: "./*"
           target: "/home/azureuser/myapp"
 
-      # Step 3: SSH and run app
-      - name: Run app.py on VM
+      # Step 3: Deploy and run app
+      - name: SSH Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM_IP_ADDRESS }}
           username: azureuser
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
-            mkdir -p /home/azureuser/myapp
+            set -e
+
             cd /home/azureuser/myapp
 
-            # Stop old app
-            pkill -f app.py || true
+            echo "🔄 Stopping old app..."
+            pkill -f "python3 app.py" || true
 
-            # Install dependencies
-            pip3 install -r requirements.txt
+            echo "📦 Creating virtual environment..."
+            python3 -m venv venv || true
+            source venv/bin/activate
 
-            # Run app in background
+            echo "⬆ Installing dependencies..."
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            echo "🚀 Starting app..."
             nohup python3 app.py > app.log 2>&1 &
 
-            echo "✅ App deployed and running"
+            echo "✅ Deployment complete!"
