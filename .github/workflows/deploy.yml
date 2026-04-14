@@ -38,14 +38,6 @@ jobs:
             echo "🔄 Stopping old app..."
             pkill -f "python3 app.py" || true
 
-            echo "📦 Creating virtual environment..."
-            python3 -m venv venv || true
-            source venv/bin/activate
-
-            echo "⬆ Installing dependencies..."
-            pip install --upgrade pip
-            pip install -r requirements.txt
-
             echo "🚀 Starting app..."
             nohup python3 app.py > app.log 2>&1 &
 
