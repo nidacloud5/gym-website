@@ -21,7 +21,7 @@ jobs:
           username: azureuser
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           source: "./*"
-          target: "/home/azureuser/myapp"
+          target: "/home/azureuser/azure folder"
 
       # Step 3: Deploy and run app
       - name: SSH Deploy
@@ -35,8 +35,7 @@ jobs:
 
             cd /home/azureuser/myapp
 
-            echo "🔄 Stopping old app..."
-            pkill -f "python3 app.py" || true
+          
 
             echo "🚀 Starting app..."
             nohup python3 app.py > app.log 2>&1 &
